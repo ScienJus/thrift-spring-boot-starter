@@ -22,7 +22,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
 
 import javax.annotation.PreDestroy;
 
@@ -52,28 +51,25 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
     Object target = getTargetBean(bean);
     Class clazz = target.getClass();
 
-    Stream.of(clazz.getDeclaredFields())
-        .filter(field -> AnnotationUtils.getAnnotation(field, ThriftClient.class) != null)
-        .forEach(field -> {
-          ProxyFactory proxyFactory = createProxyFactory(field.getName(), field.getType(), beanName, target);
+    ReflectionUtils.doWithFields(clazz, field -> {
+      ProxyFactory proxyFactory = createProxyFactory(field.getName(), field.getType(), beanName, target);
 
-          ReflectionUtils.makeAccessible(field);
-          ReflectionUtils.setField(field, target, proxyFactory.getProxy());
-        });
+      ReflectionUtils.makeAccessible(field);
+      ReflectionUtils.setField(field, target, proxyFactory.getProxy());
+    }, field -> AnnotationUtils.getAnnotation(field, ThriftClient.class) != null);
 
-    Stream.of(clazz.getDeclaredMethods())
-        .filter(method -> method.getParameterCount() == 1)
-        .filter(method -> method.getReturnType().equals(Void.TYPE))
-        .filter(method -> AnnotationUtils.getAnnotation(method, ThriftClient.class) != null)
-        .forEach(method -> {
-          Parameter parameter = method.getParameters()[0];
+    ReflectionUtils.doWithMethods(clazz, method -> {
+      Parameter parameter = method.getParameters()[0];
 
-          ProxyFactory proxyFactory = createProxyFactory(method.getName(), parameter.getType(), beanName, target);
+      ProxyFactory proxyFactory = createProxyFactory(method.getName(), parameter.getType(), beanName, target);
 
-          ReflectionUtils.makeAccessible(method);
-          ReflectionUtils.invokeMethod(method, target, proxyFactory.getProxy());
-        });
-
+      ReflectionUtils.makeAccessible(method);
+      ReflectionUtils.invokeMethod(method, target, proxyFactory.getProxy());
+    }, method ->
+      method.getParameterCount() == 1 &&
+          method.getReturnType() == Void.TYPE &&
+          AnnotationUtils.getAnnotation(method, ThriftClient.class) != null
+    );
     return bean;
   }
 
