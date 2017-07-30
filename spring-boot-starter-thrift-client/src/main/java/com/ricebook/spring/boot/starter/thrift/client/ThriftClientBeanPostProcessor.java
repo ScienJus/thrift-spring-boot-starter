@@ -20,7 +20,6 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -32,8 +31,6 @@ import javax.annotation.PreDestroy;
  * @author ScienJus
  */
 public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
-
-  private Map<String, Class> beansToProcess = new HashMap<>();
 
   private Map<String, ThriftClientBean> thriftClientMap = new ConcurrentHashMap<>();
 
@@ -51,33 +48,9 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
   }
 
   @Override
-  public Object postProcessBeforeInitialization(Object bean, String beanName)
-      throws BeansException {
-    Class clazz = bean.getClass();
-    do {
-      if (Stream.of(clazz.getDeclaredFields())
-          .anyMatch(field -> field.isAnnotationPresent(ThriftClient.class))) {
-        beansToProcess.put(beanName, clazz);
-      }
-      if (!beansToProcess.containsKey(beanName)) {
-        if (Stream.of(clazz.getDeclaredMethods())
-            .anyMatch(method -> method.isAnnotationPresent(ThriftClient.class)
-                && method.getParameterCount() == 1)) {
-          beansToProcess.put(beanName, clazz);
-        }
-      }
-      clazz = clazz.getSuperclass();
-    } while (clazz != null);
-    return bean;
-  }
-
-  @Override
-  public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-    if (!beansToProcess.containsKey(beanName)) {
-      return bean;
-    }
+  public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
     Object target = getTargetBean(bean);
-    Class clazz = beansToProcess.get(beanName);
+    Class clazz = target.getClass();
 
     Stream.of(clazz.getDeclaredFields())
         .filter(field -> AnnotationUtils.getAnnotation(field, ThriftClient.class) != null)
@@ -169,6 +142,12 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
       throw new InvalidPropertyException(bean.getClass(), name, e.getMessage());
     }
     return proxyFactory;
+  }
+
+  @Override
+  public Object postProcessAfterInitialization(Object bean, String beanName)
+      throws BeansException {
+    return bean;
   }
 
   @PreDestroy
