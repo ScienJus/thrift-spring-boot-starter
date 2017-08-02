@@ -2,6 +2,7 @@ package com.ricebook.spring.boot.starter.thrift.client;
 
 import com.ricebook.spring.boot.starter.thrift.client.annotation.ThriftClient;
 import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientProperties;
+import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientRoute;
 import com.ricebook.spring.boot.starter.thrift.client.router.Node;
 import com.ricebook.spring.boot.starter.thrift.client.router.RouterAlgorithmFactory;
 
@@ -21,6 +22,7 @@ import org.springframework.util.ReflectionUtils;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PreDestroy;
@@ -110,8 +112,15 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
 
     thriftClientBean.setName(beanName);
     thriftClientBean.setRouter(routerFactory.createRouter(name));
-    thriftClientBean.setTimeout(properties.getTimeout());
-    thriftClientBean.setRetryTimes(properties.getRetryTimes());
+
+    ThriftClientRoute route = properties.getRoutes().get(name);
+
+    thriftClientBean.setTimeout(
+        Optional.ofNullable(route.getTimeout())
+            .orElse(properties.getTimeout()));
+    thriftClientBean.setRetryTimes(
+        Optional.ofNullable(route.getRetryTimes())
+            .orElse(properties.getRetryTimes()));
 
     Constructor<?> clientConstructor = type.getConstructor(TProtocol.class);
     thriftClientBean.setClientConstructor(clientConstructor);

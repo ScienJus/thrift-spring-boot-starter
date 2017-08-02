@@ -3,24 +3,16 @@ package com.ricebook.spring.boot.starter.thrift.client.properties;
 import lombok.Data;
 
 /**
- * @author xieenlong
- * @date 17/8/2.
+ * @author dragon
+ * @author ScienJus
  */
 @Data
 public class ThriftClientRoute {
 
   private String address;
 
-  private int timeout;
+  private Integer timeout;
 
-  private int retryTimes;
-
-  private int poolMaxTotalPerKey;
-
-  private int poolMaxIdlePerKey;
-
-  private int poolMinIdlePerKey;
-
-  private long poolMaxWait;
+  private Integer retryTimes;
 
 }
