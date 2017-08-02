@@ -2,6 +2,7 @@ package com.ricebook.spring.boot.starter.thrift.client;
 
 import com.ricebook.spring.boot.starter.thrift.client.pool.TransportPoolFactory;
 import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientProperties;
+import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientPropertiesCondition;
 import com.ricebook.spring.boot.starter.thrift.client.router.DirectRouterAlgorithmFactory;
 import com.ricebook.spring.boot.starter.thrift.client.router.Node;
 import com.ricebook.spring.boot.starter.thrift.client.router.RouterAlgorithmFactory;
@@ -12,6 +13,7 @@ import org.apache.thrift.transport.TTransport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -19,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
  * @author ScienJus
  */
 @Configuration
+@Conditional(ThriftClientPropertiesCondition.class)
 @EnableConfigurationProperties(ThriftClientProperties.class)
 public class ThriftClientAutoConfiguration {
 

@@ -2,9 +2,9 @@ package com.ricebook.spring.boot.starter.thrift.server;
 
 import com.ricebook.spring.boot.starter.thrift.server.annotation.ThriftService;
 import com.ricebook.spring.boot.starter.thrift.server.exception.ThriftServerException;
-import com.ricebook.spring.boot.starter.thrift.server.properties.MultipleThriftServerProperties;
 import com.ricebook.spring.boot.starter.thrift.server.properties.ThriftServerProperties;
 import com.ricebook.spring.boot.starter.thrift.server.properties.ThriftServerPropertiesCondition;
+import com.ricebook.spring.boot.starter.thrift.server.properties.ThriftServerRegistry;
 
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @Conditional(ThriftServerPropertiesCondition.class)
-@EnableConfigurationProperties(MultipleThriftServerProperties.class)
+@EnableConfigurationProperties(ThriftServerProperties.class)
 public class ThriftServerAutoConfiguration implements ApplicationContextAware {
 
   private ApplicationContext applicationContext;
@@ -40,7 +40,7 @@ public class ThriftServerAutoConfiguration implements ApplicationContextAware {
   }
 
   @Bean
-  public TServerGroup thriftServerGroup(MultipleThriftServerProperties multipleThriftServerProperties) {
+  public TServerGroup thriftServerGroup(ThriftServerProperties properties) {
     String[] beanNames = applicationContext.getBeanNamesForAnnotation(ThriftService.class);
     if (beanNames == null || beanNames.length == 0) {
       throw new ThriftServerException("Can not found any thrift service");
@@ -50,26 +50,42 @@ public class ThriftServerAutoConfiguration implements ApplicationContextAware {
       Object bean = applicationContext.getBean(beanName);
       ThriftService thriftService = bean.getClass().getAnnotation(ThriftService.class);
       String serviceName = thriftService.value();
-      ThriftServerProperties properties = multipleThriftServerProperties.getServer()
-          .get(serviceName);
 
-      if (properties == null) {
-        throw new ThriftServerException("Can not found thrift server properties, service name: " + serviceName);
-      }
+      ThriftServerRegistry registry = getRegistry(properties, serviceName);
 
       THsHaServer.Args args;
         try {
-        args = new THsHaServerArgs(beanName, bean, properties);
+        args = new THsHaServerArgs(beanName, bean, registry);
       } catch (Exception e) {
         throw new ThriftServerException("Can not create server for " + beanName, e);
       }
 
       log.info("Thrift server is starting, service name is {}, port is {}, minWorker is {}, maxWorker is {}",
-          beanName, properties.getPort(), properties.getMinWorker(), properties.getMaxWorker());
+          beanName, registry.getPort(), registry.getMinWorker(), registry.getMaxWorker());
       return new THsHaServer(args);
     }).collect(Collectors.toList());
 
     return new TServerGroup(servers);
+  }
+
+  private ThriftServerRegistry getRegistry(ThriftServerProperties properties, String serviceName) {
+    ThriftServerRegistry registry = properties.getRegistries()
+        .get(serviceName);
+
+    if (registry == null) {
+      throw new ThriftServerException("Can not found thrift server registry, service name: " + serviceName);
+    }
+
+    if (registry.getMaxWorker() == null) {
+      registry.setMaxWorker(properties.getMaxWorker());
+    }
+    if (registry.getMinWorker() == null) {
+      registry.setMinWorker(properties.getMinWorker());
+    }
+    if (registry.getWorkerQueueCapacity() == null) {
+      registry.setWorkerQueueCapacity(properties.getWorkerQueueCapacity());
+    }
+    return registry;
   }
 
   @Bean

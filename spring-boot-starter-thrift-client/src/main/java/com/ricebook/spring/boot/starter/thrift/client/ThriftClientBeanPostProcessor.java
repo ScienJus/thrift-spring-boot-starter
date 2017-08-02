@@ -1,6 +1,7 @@
 package com.ricebook.spring.boot.starter.thrift.client;
 
 import com.ricebook.spring.boot.starter.thrift.client.annotation.ThriftClient;
+import com.ricebook.spring.boot.starter.thrift.client.exception.ThriftClientException;
 import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientProperties;
 import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientRoute;
 import com.ricebook.spring.boot.starter.thrift.client.router.Node;
@@ -65,6 +66,9 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
       Parameter parameter = method.getParameters()[0];
 
       ThriftClient annotation = AnnotationUtils.getAnnotation(method, ThriftClient.class);
+
+      ThriftClientRoute route = getRoute(properties, annotation.value());
+
       ProxyFactory proxyFactory = createProxyFactory(annotation.value(), method.getName(), parameter.getType(), beanName, target);
 
       ReflectionUtils.makeAccessible(method);
@@ -75,6 +79,23 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
           AnnotationUtils.getAnnotation(method, ThriftClient.class) != null
     );
     return bean;
+  }
+
+  private ThriftClientRoute getRoute(ThriftClientProperties properties, String name) {
+    ThriftClientRoute route = properties.getRoutes().get(name);
+
+    if (route == null) {
+      throw new ThriftClientException("Can not found thrift client route, route name: " + name);
+    }
+
+    if (route.getRetryTimes() == null) {
+      route.setRetryTimes(properties.getRetryTimes());
+    }
+    if (route.getTimeout() == null) {
+      route.setTimeout(properties.getTimeout());
+    }
+
+    return route;
   }
 
   private ProxyFactory createProxyFactory(String thriftClientName, String fieldName, Class<?> type, String beanName, Object target) {

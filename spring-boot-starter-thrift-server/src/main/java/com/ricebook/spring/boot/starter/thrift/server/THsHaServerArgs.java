@@ -1,7 +1,7 @@
 package com.ricebook.spring.boot.starter.thrift.server;
 
 import com.ricebook.spring.boot.starter.thrift.server.exception.ThriftServerException;
-import com.ricebook.spring.boot.starter.thrift.server.properties.ThriftServerProperties;
+import com.ricebook.spring.boot.starter.thrift.server.properties.ThriftServerRegistry;
 
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class THsHaServerArgs extends THsHaServer.Args {
 
-  public THsHaServerArgs(String beanName, Object bean, ThriftServerProperties properties)
+  public THsHaServerArgs(String beanName, Object bean, ThriftServerRegistry properties)
       throws TTransportException {
     super(new TNonblockingServerSocket(properties.getPort()));
 
@@ -40,13 +40,13 @@ public class THsHaServerArgs extends THsHaServer.Args {
     }
   }
 
-  private ExecutorService createInvokerPool(ThriftServerProperties properties) {
+  private ExecutorService createInvokerPool(ThriftServerRegistry registry) {
     // TODO: custom thread name
     return new ThreadPoolExecutor(
-        properties.getMinWorker(),
-        properties.getMaxWorker(),
+        registry.getMinWorker(),
+        registry.getMaxWorker(),
         1, TimeUnit.MINUTES,
-        new LinkedBlockingQueue<>(properties.getWorkerQueueCapacity()));
+        new LinkedBlockingQueue<>(registry.getWorkerQueueCapacity()));
   }
 
   private TProcessor thriftProcessor(Object bean) throws NoSuchMethodException {
