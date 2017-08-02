@@ -2,8 +2,9 @@ package com.ricebook.spring.boot.starter.thrift.client;
 
 import com.ricebook.spring.boot.starter.thrift.client.annotation.ThriftClient;
 import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientProperties;
+import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientRoute;
 import com.ricebook.spring.boot.starter.thrift.client.router.Node;
-import com.ricebook.spring.boot.starter.thrift.client.router.RouterAlgorithm;
+import com.ricebook.spring.boot.starter.thrift.client.router.RouterAlgorithmFactory;
 
 import org.apache.commons.pool2.impl.GenericKeyedObjectPool;
 import org.apache.thrift.protocol.TProtocol;
@@ -21,6 +22,7 @@ import org.springframework.util.ReflectionUtils;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PreDestroy;
@@ -35,14 +37,14 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
 
   private GenericKeyedObjectPool<Node, TTransport> pool;
 
-  private RouterAlgorithm router;
+  private RouterAlgorithmFactory routerFactory;
 
   private ThriftClientProperties properties;
 
   public ThriftClientBeanPostProcessor(GenericKeyedObjectPool<Node, TTransport> pool,
-      RouterAlgorithm router, ThriftClientProperties properties) {
+      RouterAlgorithmFactory routerFactory, ThriftClientProperties properties) {
     this.pool = pool;
-    this.router = router;
+    this.routerFactory = routerFactory;
     this.properties = properties;
   }
 
@@ -52,7 +54,8 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
     Class clazz = target.getClass();
 
     ReflectionUtils.doWithFields(clazz, field -> {
-      ProxyFactory proxyFactory = createProxyFactory(field.getName(), field.getType(), beanName, target);
+      ThriftClient annotation = AnnotationUtils.getAnnotation(field, ThriftClient.class);
+      ProxyFactory proxyFactory = createProxyFactory(annotation.value(), field.getName(), field.getType(), beanName, target);
 
       ReflectionUtils.makeAccessible(field);
       ReflectionUtils.setField(field, target, proxyFactory.getProxy());
@@ -61,7 +64,8 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
     ReflectionUtils.doWithMethods(clazz, method -> {
       Parameter parameter = method.getParameters()[0];
 
-      ProxyFactory proxyFactory = createProxyFactory(method.getName(), parameter.getType(), beanName, target);
+      ThriftClient annotation = AnnotationUtils.getAnnotation(method, ThriftClient.class);
+      ProxyFactory proxyFactory = createProxyFactory(annotation.value(), method.getName(), parameter.getType(), beanName, target);
 
       ReflectionUtils.makeAccessible(method);
       ReflectionUtils.invokeMethod(method, target, proxyFactory.getProxy());
@@ -73,21 +77,21 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
     return bean;
   }
 
-  private ProxyFactory createProxyFactory(String name, Class<?> type, String beanName, Object target) {
+  private ProxyFactory createProxyFactory(String thriftClientName, String fieldName, Class<?> type, String beanName, Object target) {
     String realClassName = getRealClassName(type);
 
     beanName = beanName + "-" + realClassName;
 
     ThriftClientBean thriftClientBean;
     try {
-      thriftClientBean = createThriftClientBean(type, beanName);
+      thriftClientBean = createThriftClientBean(thriftClientName, type, beanName);
     } catch (SecurityException | NoSuchMethodException e) {
       throw new IllegalStateException("Can't create thrift client. class name is " + realClassName, e);
     }
 
     thriftClientMap.put(beanName, thriftClientBean);
 
-    ProxyFactory proxyFactory = getProxyFactoryForThriftClient(target, type, name);
+    ProxyFactory proxyFactory = getProxyFactoryForThriftClient(target, type, fieldName);
     proxyFactory.addAdvice(new ThriftClientAdvice(thriftClientBean, pool));
 
     proxyFactory.setFrozen(true);
@@ -102,14 +106,21 @@ public class ThriftClientBeanPostProcessor implements BeanPostProcessor {
     return className.substring(0, lastComma);
   }
 
-  private ThriftClientBean createThriftClientBean(Class<?> type, String beanName)
+  private ThriftClientBean createThriftClientBean(String name, Class<?> type, String beanName)
       throws NoSuchMethodException {
     ThriftClientBean thriftClientBean = new ThriftClientBean();
 
     thriftClientBean.setName(beanName);
-    thriftClientBean.setRouter(router);
-    thriftClientBean.setTimeout(properties.getTimeout());
-    thriftClientBean.setRetryTimes(properties.getRetryTimes());
+    thriftClientBean.setRouter(routerFactory.createRouter(name));
+
+    ThriftClientRoute route = properties.getRoutes().get(name);
+
+    thriftClientBean.setTimeout(
+        Optional.ofNullable(route.getTimeout())
+            .orElse(properties.getTimeout()));
+    thriftClientBean.setRetryTimes(
+        Optional.ofNullable(route.getRetryTimes())
+            .orElse(properties.getRetryTimes()));
 
     Constructor<?> clientConstructor = type.getConstructor(TProtocol.class);
     thriftClientBean.setClientConstructor(clientConstructor);

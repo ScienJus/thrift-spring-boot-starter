@@ -2,15 +2,14 @@ package com.ricebook.spring.boot.starter.thrift.client;
 
 import com.ricebook.spring.boot.starter.thrift.client.pool.TransportPoolFactory;
 import com.ricebook.spring.boot.starter.thrift.client.properties.ThriftClientProperties;
-import com.ricebook.spring.boot.starter.thrift.client.router.DirectRouterAlgorithm;
+import com.ricebook.spring.boot.starter.thrift.client.router.DirectRouterAlgorithmFactory;
 import com.ricebook.spring.boot.starter.thrift.client.router.Node;
-import com.ricebook.spring.boot.starter.thrift.client.router.RouterAlgorithm;
+import com.ricebook.spring.boot.starter.thrift.client.router.RouterAlgorithmFactory;
 
 import org.apache.commons.pool2.impl.GenericKeyedObjectPool;
 import org.apache.commons.pool2.impl.GenericKeyedObjectPoolConfig;
 import org.apache.thrift.transport.TTransport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,14 +40,14 @@ public class ThriftClientAutoConfiguration {
   @Bean
   public ThriftClientBeanPostProcessor thriftClientBeanPostProcessor(
       GenericKeyedObjectPool<Node, TTransport> pool,
-      RouterAlgorithm router,
+      RouterAlgorithmFactory routerFactory,
       ThriftClientProperties properties) {
-    return new ThriftClientBeanPostProcessor(pool, router, properties);
+    return new ThriftClientBeanPostProcessor(pool, routerFactory, properties);
   }
 
   @Bean
-  @ConditionalOnProperty("thrift.client.address")
-  public RouterAlgorithm router(ThriftClientProperties properties) {
-    return new DirectRouterAlgorithm(properties.getAddress());
+  @ConditionalOnMissingBean
+  public RouterAlgorithmFactory routerFactory(ThriftClientProperties properties) {
+    return new DirectRouterAlgorithmFactory(properties);
   }
 }
