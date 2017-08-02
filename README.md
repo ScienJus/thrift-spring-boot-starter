@@ -20,14 +20,14 @@ use `@ThriftClient` injection thrift client on fields or methods:
 
 ```
 // field injection
-@ThriftClient
+@ThriftClient("cal")
 private CalService.Client calClient;
 
 // method injection
 private CalService.Client calClient;
 
-@ThriftClient
-public void setcalClient(CalService.Client calClient) {
+@ThriftClient("cal")
+public void setCalClient(CalService.Client calClient) {
   this.calClient = calClient;
 }
 ```
@@ -37,7 +37,9 @@ add thrift client properties to your `application.yml`:
 ```
 thrift:
   client:
-    address: localhost:9090
+    routes:
+      cal:  # same as @ThriftClient#value
+        address: localhost:9090
     timeout: 500
     retryTimes: 3
 ```
@@ -72,7 +74,7 @@ add thrift server properties to your `application.yml`:
 ```
 thrift:
   server:
-    cal:    # same as @ThriftService#value
+    cal:  # same as @ThriftService#value
       port: 9090
       minWorker: 4
       maxWorker: 20
