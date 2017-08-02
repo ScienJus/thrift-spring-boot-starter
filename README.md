@@ -74,10 +74,11 @@ add thrift server properties to your `application.yml`:
 ```
 thrift:
   server:
-    cal:  # same as @ThriftService#value
-      port: 9090
-      minWorker: 4
-      maxWorker: 20
-      workerQueueCapacity: 2048
+    registries:
+      cal:  # same as @ThriftService#value
+        port: 9090
+    minWorker: 4
+    maxWorker: 20
+    workerQueueCapacity: 2048
 ```
 
