@@ -6,6 +6,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * @author dragon
+ * @author ScienJus
+ */
 public class DirectRouterAlgorithm implements RouterAlgorithm {
 
   private final String[] directAddress;

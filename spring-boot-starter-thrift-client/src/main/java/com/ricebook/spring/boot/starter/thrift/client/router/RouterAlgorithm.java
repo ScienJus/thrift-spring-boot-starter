@@ -1,7 +1,8 @@
 package com.ricebook.spring.boot.starter.thrift.client.router;
 
 /**
- * Created by dragon on 16/5/6.
+ * @author dragon
+ * @author ScienJus
  */
 public interface RouterAlgorithm {
 

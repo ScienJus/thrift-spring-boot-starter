@@ -2,6 +2,8 @@ package com.ricebook.spring.boot.starter.thrift.client.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.Map;
+
 import lombok.Data;
 
 /**
@@ -12,11 +14,11 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "thrift.client")
 public class ThriftClientProperties {
 
-  private String address;
+  private Map<String, ThriftClientRoute> routes;
 
-  private int timeout;
+  private int timeout = 500;
 
-  private int retryTimes;
+  private int retryTimes = 3;
 
   private int poolMaxTotalPerKey = 200;
 

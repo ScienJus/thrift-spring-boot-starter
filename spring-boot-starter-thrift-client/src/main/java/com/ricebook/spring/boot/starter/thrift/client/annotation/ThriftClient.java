@@ -17,4 +17,6 @@ import java.lang.annotation.Target;
 @Documented
 @Inherited
 public @interface ThriftClient {
+
+  String value();
 }
