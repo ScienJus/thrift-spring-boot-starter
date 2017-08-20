@@ -1,6 +1,6 @@
 # spring-boot-starter-thrift
 
-spring boot starter component for apache thrift. nonblocking client/server, service discovery, load balancing and more.
+Apache Thrift integration with Spring Boot. nonblocking client/server, service discovery, load balancing and more.
 
 # Getting Started
 
